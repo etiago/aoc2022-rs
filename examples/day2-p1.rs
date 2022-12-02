@@ -1,44 +1,33 @@
 use std::{
-    collections::HashMap,
     error::Error,
     fs::File,
     io::{BufRead, BufReader},
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let scoring_pairs = HashMap::from([
-        ("A", HashMap::from([("X", 3), ("Y", 6), ("Z", 0)])),
-        ("B", HashMap::from([("X", 0), ("Y", 3), ("Z", 6)])),
-        ("C", HashMap::from([("X", 6), ("Y", 0), ("Z", 3)])),
-    ]);
-
-    let scoring_per_type = HashMap::from([("X", 1), ("Y", 2), ("Z", 3)]);
+    // [Elf [Me]]
+    // [R [R, P, S], P [R, P, S], S [R, P, S]]
+    let scoring_array: [[i32; 3]; 3] = [[3, 6, 0], [0, 3, 6], [6, 0, 3]];
 
     let file = File::open("examples/inputs/day2.txt")?;
     let reader = BufReader::new(file);
 
-    let mut score = 0;
-    reader.lines().for_each(|line| {
+    let final_score = reader.lines().fold(0, |score, line| {
         let line_str = line.expect("Failed to read line");
-        let play = line_str.split(" ").collect::<Vec<&str>>();
+        let chars = line_str.as_bytes();
 
-        let elf_play = play[0];
-        let my_play = play[1];
+        // For the Elf play, normalize ASCII bytes such that A == 0
+        // to use as an index into the array.
+        // For my play, normalize ASCII bytes such that Z == 0.
+        let elf_play = (chars[0] - ('A' as u8)) as usize;
+        let my_play = (chars[2] - ('X' as u8)) as usize;
 
-        let score_from_pairs = scoring_pairs
-            .get(elf_play)
-            .expect("Couldn´t find elf play")
-            .get(my_play)
-            .expect("Couldn´t find my play");
+        let score_from_pairs = scoring_array[elf_play][my_play];
+        let score_from_type = my_play as i32 + 1;
 
-        let score_from_type = scoring_per_type
-            .get(my_play)
-            .expect("Couldn´t find my play in per type");
-
-        score += score_from_pairs;
-        score += score_from_type;
+        score + score_from_type + score_from_pairs
     });
 
-    println!("My score: {}", score);
+    println!("My score: {}", final_score);
     Ok(())
 }
