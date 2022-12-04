@@ -3,7 +3,7 @@ use std::{
     collections::HashSet,
     error::Error,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader}, iter::FromIterator,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -12,51 +12,43 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut priority_sum: u32 = 0;
 
-    let mut line_intersection = HashSet::<u8>::new();
     let mut read_lines = 0;
+    let mut three_lines: [Vec<u8>; 3] = [Vec::new(), Vec::new(), Vec::new()];
 
     reader.lines().for_each(|line| {
         let line_str = line.expect("Failed to get line");
-        let bytes = line_str.as_bytes();
+        let bytes = line_str.as_bytes().into_iter();
 
-        let mut line_bytes = HashSet::<u8>::new();
-
-        for i in 0..bytes.len() {
-            line_bytes.insert(bytes[i]);
-        }
-
-        if read_lines == 0 {
-            line_intersection.clear();
-            line_intersection = line_bytes;
-            read_lines += 1;
-            return;
-        }
-
-        let prev_intersection = line_intersection.clone();
-        let intersect = prev_intersection.intersection(&line_bytes);
-        line_intersection.clear();
-
-        for inter_byte in intersect {
-            line_intersection.insert(*inter_byte);
-        }
-
+        three_lines[read_lines].clear();
+        three_lines[read_lines].extend(bytes);
         read_lines += 1;
 
         if read_lines == 3 {
-            let intersect: Vec::<&u8> = line_intersection.iter().collect();
-            let c = **intersect.get(0).expect("Failed to get intersection") as char;
+            let first_line: HashSet<u8> =
+                HashSet::from_iter(three_lines[0].iter().map(|b| *b));
+            let second_line: HashSet<u8> =
+                HashSet::from_iter(three_lines[1].iter().map(|b| *b));
+            let third_line: HashSet<u8> =
+                HashSet::from_iter(three_lines[2].iter().map(|b| *b));
+
+            let first_second: HashSet<u8> =
+                first_line.intersection(&second_line).map(|b| *b).collect();
+            let common = first_second
+                .intersection(&third_line)
+                .into_iter()
+                .next()
+                .expect("Failed to get common element");
+
+            let c = *common as char;
 
             if c.is_ascii_lowercase() {
                 priority_sum += ((c as u8) - ('a' as u8) + 1) as u32;
             } else {
                 priority_sum += ((c as u8) - ('A' as u8) + 27) as u32;
             }
-
             read_lines = 0;
         }
-
     });
-
 
     println!("Sum of priorities of repeated characters: {}", priority_sum);
     Ok(())
